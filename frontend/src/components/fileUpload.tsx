@@ -52,26 +52,39 @@ export default function FileUpload({ onUploadComplete, isProcessing }: FileUploa
     fileInputRef.current?.click();
   };
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-bold text-primary">LogBotAI</h1>
-        </div>
-      </header>
+  const handleUpload = () => {
+    if (files.length > 0) {
+      onUploadComplete();
+    }
+  };
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4">
-        <div className="max-w-3xl w-full space-y-8">
+  return (
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
+      <main className="flex-1 flex flex-col items-center p-4 overflow-y-auto">
+        <div className="max-w-4xl w-full space-y-8 pt-8">
+          {/* Hero Section */}
+          <div className="text-center p-8">
+            <div className="inline-block text-indigo-600 mb-2 px-6 py-2 rounded-full bg-indigo-50 text-sm font-medium shadow-sm">
+              Mötesanteckningar på dina villkor
+            </div>
+            <h2 className="text-5xl font-bold mb-4 leading-tight">
+              Personlig analys med en{' '}
+              <span className="hero-gradient">AI assistent</span>
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-6">
+              Lås upp potentialen i dina mötesanteckningar med vår innovativa AI. Vår plattform hjälper dig att 
+              analysera innehållet i din takt, med fokus på det som är viktigt för dig.
+            </p>
+          </div>
+
           {/* Upload area */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-              ${isDragging ? 'border-primary bg-primary/5' : 'border-gray-300'}
-              ${isProcessing ? 'pointer-events-none opacity-50' : 'hover:border-primary'}`}
+            className={`card-gradient border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all shadow-lg
+              ${isDragging ? 'border-indigo-500 bg-indigo-50/50' : 'border-indigo-200'}
+              ${isProcessing ? 'pointer-events-none opacity-50' : 'hover:border-indigo-500 hover:shadow-xl'}`}
           >
             <input
               ref={fileInputRef}
@@ -81,13 +94,13 @@ export default function FileUpload({ onUploadComplete, isProcessing }: FileUploa
               className="hidden"
               multiple
             />
-            <Upload className="mx-auto h-12 w-12 text-gray-400" />
+            <Upload className="mx-auto h-12 w-12 text-indigo-500" />
             <p className="mt-2 text-sm text-gray-600">
               Dra och släpp dina .docx filer här eller
             </p>
             <Button 
               variant="outline" 
-              className="mt-2" 
+              className="mt-2 border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50" 
               disabled={isProcessing}
               onClick={handleButtonClick}
             >
@@ -101,15 +114,15 @@ export default function FileUpload({ onUploadComplete, isProcessing }: FileUploa
               {files.map((file, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm"
+                  className="card-gradient flex items-center justify-between p-4 rounded-xl shadow-md transition-all hover:shadow-lg"
                 >
                   <div className="flex items-center space-x-3">
-                    <FileText className="h-6 w-6 text-primary" />
-                    <span className="text-sm font-medium">{file.name}</span>
+                    <FileText className="h-6 w-6 text-indigo-500" />
+                    <span className="text-sm font-medium text-gray-700">{file.name}</span>
                   </div>
                   <button
                     onClick={() => removeFile(file)}
-                    className="text-gray-400 hover:text-gray-500"
+                    className="text-gray-400 hover:text-indigo-500 transition-colors"
                     disabled={isProcessing}
                   >
                     <X className="h-5 w-5" />
@@ -118,9 +131,9 @@ export default function FileUpload({ onUploadComplete, isProcessing }: FileUploa
               ))}
 
               <Button
-                className="w-full"
-                onClick={onUploadComplete}
-                disabled={isProcessing}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
+                onClick={handleUpload}
+                disabled={isProcessing || files.length === 0}
               >
                 Ladda upp
               </Button>
