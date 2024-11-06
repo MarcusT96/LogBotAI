@@ -1,0 +1,9 @@
+*.docx
+*.pdf
+*.txt
+*.csv
+*.json
+*.jsonl
+
+*.env
+/__pycache__/
