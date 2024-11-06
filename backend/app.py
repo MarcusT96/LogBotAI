@@ -3,7 +3,12 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
+from pydantic import BaseModel
 from agent import ingest_multiple_documents, ask_question
+
+# Add this class for the request body
+class QuestionRequest(BaseModel):
+    message: str
 
 app = FastAPI()
 
@@ -25,12 +30,12 @@ async def upload_documents(files: List[UploadFile] = File(...)):
     return results
 
 @app.post("/ask")
-async def ask(question: str):
+async def ask(question: QuestionRequest):
     """
     Endpoint to ask questions about the ingested documents
     """
     try:
-        answer = ask_question(question)
+        answer = ask_question(question.message)  # Use question.message instead of question
         return {"status": "success", "answer": answer}
     except Exception as e:
         return {"status": "error", "message": str(e)}

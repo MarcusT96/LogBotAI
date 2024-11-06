@@ -4,31 +4,37 @@ export async function POST(req: Request) {
   try {
     const { message } = await req.json();
 
-    // This is where you'll add your actual AI service call
-    // For example:
-    // const aiResponse = await fetch('your-ai-service-url', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${process.env.AI_SERVICE_KEY}`
-    //   },
-    //   body: JSON.stringify({ message, context: 'meeting_minutes' })
-    // });
-    // const data = await aiResponse.json();
+    // Call your FastAPI backend
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/ask`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: message })
+    });
 
-    const response = {
+    if (!response.ok) {
+      throw new Error('Backend API call failed');
+    }
+
+    const data = await response.json();
+
+    // Format the response to match our frontend's expected structure
+    const formattedResponse = {
       id: Date.now(),
-      text: `Server received: ${message}`, // This will be replaced with actual AI response
-      sender: 'ai'
+      text: data.answer,
+      sender: 'ai' as const
     };
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    return NextResponse.json(response);
+    return NextResponse.json(formattedResponse);
   } catch (error) {
     console.error('Chat API error:', error);
     return NextResponse.json(
-      { error: 'Failed to process message' },
+      { 
+        id: Date.now(),
+        text: "Ett fel uppstod. Försök igen senare.",
+        sender: 'ai'
+      },
       { status: 500 }
     );
   }

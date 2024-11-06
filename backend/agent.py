@@ -35,7 +35,7 @@ model = AzureChatOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     api_version=AZURE_OPENAI_API_VERSION,
     deployment_name="MecklyGPT4oMini",
-    temperature=0,
+    temperature=0.5,
     streaming=True
 )
 
@@ -122,9 +122,8 @@ async def ingest_multiple_documents(files: List[UploadFile]) -> List[dict]:
     
     return results
 
-# First, let's create a better prompt template that includes both the question and retrieved context
 prompt = PromptTemplate.from_template("""
-You are a helpful assistant that answers questions based on the provided context from meeting protocols and documents.
+You are LogBot, an AI assistant that answers questions based on the provided context from meeting protocols and documents.
 
 Context from relevant documents:
 {context}
@@ -132,7 +131,7 @@ Context from relevant documents:
 Question: {input}
 
 Please provide a clear and concise answer based on the context provided. If the context doesn't contain relevant information to answer the question, please say so.
-
+Speak Swedish.
 Answer:""")
 
 # Create the retrieval chain

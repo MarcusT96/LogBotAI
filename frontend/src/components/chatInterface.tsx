@@ -1,14 +1,23 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send } from "lucide-react"
+import ReactMarkdown, { Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface Message {
   id: number;
   text: string;
   sender: 'user' | 'ai';
+}
+
+interface MarkdownProps {
+  node?: any;
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
 }
 
 export default function Component() {
@@ -21,6 +30,55 @@ export default function Component() {
     }
   ])
   const [isLoading, setIsLoading] = useState(false)
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages, isLoading])
+
+  const markdownComponents: Partial<Components> = {
+    code: ({ node, inline, className, children, ...props }: MarkdownProps) => {
+      return (
+        <code
+          className={`${inline ? 'bg-gray-100 rounded px-1' : 'block bg-gray-100 p-2 rounded-lg'} ${className || ''}`}
+          {...props}
+        >
+          {children}
+        </code>
+      )
+    },
+    a: ({ node, className, children, ...props }: MarkdownProps) => {
+      return (
+        <a
+          className="text-blue-500 hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+          {...props}
+        >
+          {children}
+        </a>
+      )
+    },
+    ul: ({ node, className, children, ...props }: MarkdownProps) => {
+      return (
+        <ul className="list-disc pl-4 space-y-1" {...props}>
+          {children}
+        </ul>
+      )
+    },
+    ol: ({ node, className, children, ...props }: MarkdownProps) => {
+      return (
+        <ol className="list-decimal pl-4 space-y-1" {...props}>
+          {children}
+        </ol>
+      )
+    }
+  }
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,7 +110,6 @@ export default function Component() {
       const data = await response.json()
       setMessages(prev => [...prev, data])
     } catch (error) {
-      // Add error message
       setMessages(prev => [...prev, {
         id: Date.now(),
         text: "Ett fel uppstod. Försök igen senare.",
@@ -65,9 +122,7 @@ export default function Component() {
 
   return (
     <div className="h-[calc(100vh-4rem)] flex bg-gradient-to-br from-blue-50 to-indigo-50">
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Chat Content */}
         <div className="flex-1 overflow-y-auto p-6">
           <div className="mx-auto max-w-3xl">
             {messages.map((message) => (
@@ -82,7 +137,27 @@ export default function Component() {
                       : 'bg-white text-gray-800'
                   }`}
                 >
-                  {message.text}
+                  {message.sender === 'ai' ? (
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      className="prose prose-slate max-w-none
+                        prose-headings:text-gray-800 
+                        prose-p:text-gray-800 
+                        prose-strong:text-gray-800
+                        prose-ul:text-gray-800
+                        prose-ol:text-gray-800
+                        prose-pre:bg-gray-50
+                        prose-pre:text-gray-800
+                        prose-code:text-gray-800
+                        prose-blockquote:text-gray-800
+                        prose-li:marker:text-gray-800"
+                      components={markdownComponents}
+                    >
+                      {message.text}
+                    </ReactMarkdown>
+                  ) : (
+                    message.text
+                  )}
                 </div>
               </div>
             ))}
@@ -97,10 +172,10 @@ export default function Component() {
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
         </div>
 
-        {/* Input Area */}
         <div className="border-t bg-white p-4">
           <div className="mx-auto max-w-3xl">
             <form onSubmit={handleSendMessage} className="flex items-center gap-2">
