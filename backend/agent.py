@@ -19,6 +19,8 @@ from operator import itemgetter
 
 from fastapi import UploadFile
 
+import io
+
 load_dotenv()
 
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
@@ -55,53 +57,52 @@ vectorstore = AstraDBVectorStore(
 
 retriever = vectorstore.as_retriever()
 
-async def ingest_single_document(file: UploadFile) -> dict:
+async def ingest_single_document(file: io.BytesIO) -> dict:
     """
-    Ingest a single DOCX document from an uploaded file into the vector store.
+    Ingest a single DOCX document from a BytesIO object into the vector store.
+    Each document will be stored as a single chunk.
     
     Args:
-        file (UploadFile): The uploaded file object from FastAPI
+        file (io.BytesIO): The file object with filename attribute
     
     Returns:
         dict: Status of the ingestion
     """
     try:
-        # Read the content of the uploaded file
-        content = await file.read()
-        
-        # Convert bytes to text using docx2txt
-        text = docx2txt.process(content)
+        # Process the BytesIO content with docx2txt
+        text = docx2txt.process(file)
         
         # Create a single document with metadata
         document = Document(
             page_content=text,
             metadata={
-                "source": file.filename
+                "source": file.filename,
+                "timestamp": datetime.now().isoformat()
             }
         )
         
-        # Store in vector database
-        vectorstore.add_documents(documents=[document])
+        # Add to vector store
+        vectorstore.add_documents([document])
 
         return {
             "status": "success",
             "filename": file.filename,
-            "message": "Document successfully ingested"
+            "message": "Document successfully ingested as a complete unit"
         }
         
     except Exception as e:
         return {
             "status": "error",
-            "filename": file.filename,
+            "filename": getattr(file, 'filename', 'unknown'),
             "message": str(e)
         }
 
-async def ingest_multiple_documents(files: List[UploadFile]) -> List[dict]:
+async def ingest_multiple_documents(files: List[io.BytesIO]) -> List[dict]:
     """
-    Ingest multiple DOCX documents from uploaded files.
+    Ingest multiple DOCX documents from BytesIO objects.
     
     Args:
-        files (List[UploadFile]): List of uploaded file objects
+        files (List[io.BytesIO]): List of file objects with filename attributes
     
     Returns:
         List[dict]: Status of each file's ingestion
@@ -109,16 +110,24 @@ async def ingest_multiple_documents(files: List[UploadFile]) -> List[dict]:
     results = []
     
     for file in files:
-        if not file.filename.endswith('.docx'):
+        try:
+            if not hasattr(file, 'filename') or not file.filename.endswith('.docx'):
+                results.append({
+                    "status": "error",
+                    "filename": getattr(file, 'filename', 'unknown'),
+                    "message": "Only DOCX files are supported"
+                })
+                continue
+                
+            result = await ingest_single_document(file)
+            results.append(result)
+            
+        except Exception as e:
             results.append({
                 "status": "error",
-                "filename": file.filename,
-                "message": "Only DOCX files are supported"
+                "filename": getattr(file, 'filename', 'unknown'),
+                "message": str(e)
             })
-            continue
-            
-        result = await ingest_single_document(file)
-        results.append(result)
     
     return results
 
