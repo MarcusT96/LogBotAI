@@ -20,6 +20,19 @@ interface MarkdownProps {
   children?: React.ReactNode;
 }
 
+const fadeInAnimation = `
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(1px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
 export default function Component() {
   const [inputValue, setInputValue] = useState("")
   const [messages, setMessages] = useState<Message[]>([
@@ -30,6 +43,7 @@ export default function Component() {
     }
   ])
   const [isLoading, setIsLoading] = useState(false)
+  const [messageIdCounter, setMessageIdCounter] = useState(2)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -40,6 +54,16 @@ export default function Component() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, isLoading])
+
+  useEffect(() => {
+    const styleSheet = document.createElement("style")
+    styleSheet.textContent = fadeInAnimation
+    document.head.appendChild(styleSheet)
+
+    return () => {
+      document.head.removeChild(styleSheet)
+    }
+  }, [])
 
   const markdownComponents: Partial<Components> = {
     code: ({ node, inline, className, children, ...props }: MarkdownProps) => {
@@ -80,16 +104,37 @@ export default function Component() {
     }
   }
 
+  const renderAnimatedText = (text: string) => {
+    return (
+      <span className="inline-block">
+        {text.split('').map((char, index) => (
+          <span
+            key={index}
+            style={{
+              display: 'inline-block',
+              opacity: 0,
+              animation: `fadeIn 0.3s ease-out forwards`,
+              animationDelay: `${index * 0.02}s`,
+            }}
+          >
+            {char}
+          </span>
+        ))}
+      </span>
+    );
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputValue.trim() || isLoading) return
 
-    // Add user message immediately
-    const userMessage: Message = {
-      id: Date.now(),
-      text: inputValue,
-      sender: 'user'
+    const userMessage = {
+      id: messageIdCounter,
+      text: inputValue.trim(),
+      sender: 'user' as const
     }
+
+    setMessageIdCounter(prev => prev + 1)
     setMessages(prev => [...prev, userMessage])
     setInputValue("")
     setIsLoading(true)
@@ -100,21 +145,72 @@ export default function Component() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: inputValue }),
+        body: JSON.stringify({ message: userMessage.text }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to get response')
+        throw new Error('Network response was not ok')
       }
 
-      const data = await response.json()
-      setMessages(prev => [...prev, data])
+      // Create a new message for the assistant's response
+      const assistantMessage: Message = {
+        id: messageIdCounter + 1,
+        text: '',
+        sender: 'ai'
+      }
+      setMessageIdCounter(prev => prev + 1)
+      setMessages(prev => [...prev, assistantMessage])
+
+      const reader = response.body?.getReader()
+
+      if (reader) {
+        const textDecoder = new TextDecoder()
+        let buffer = ''
+        let isFirstChunk = true
+        
+        const updateMessageWithDelay = async (text: string) => {
+            if (isFirstChunk) {
+                setIsLoading(false)  // Remove loading indicator on first chunk
+                isFirstChunk = false
+            }
+            
+            setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                lastMessage.text = text
+                return newMessages
+            })
+            // Add a small delay between updates for smoother appearance
+            await new Promise(resolve => setTimeout(resolve, 50))
+        }
+        
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            // Decode the chunk and add it to our buffer
+            const chunk = textDecoder.decode(value, { stream: true })
+            buffer += chunk
+            
+            // Update the message with the complete buffer
+            await updateMessageWithDelay(buffer)
+        }
+        
+        // Final decode
+        const finalChunk = textDecoder.decode()
+        if (finalChunk) {
+            buffer += finalChunk
+            await updateMessageWithDelay(buffer)
+        }
+      }
     } catch (error) {
+      console.error('Error:', error)
       setMessages(prev => [...prev, {
-        id: Date.now(),
-        text: "Ett fel uppstod. Försök igen senare.",
+        id: messageIdCounter + 1,
+        text: 'Sorry, there was an error processing your request.',
         sender: 'ai'
       }])
+      setMessageIdCounter(prev => prev + 1)
     } finally {
       setIsLoading(false)
     }
@@ -151,7 +247,14 @@ export default function Component() {
                         prose-code:text-gray-800
                         prose-blockquote:text-gray-800
                         prose-li:marker:text-gray-800"
-                      components={markdownComponents}
+                      components={{
+                        ...markdownComponents,
+                        p: ({ children }) => (
+                          <p className="whitespace-pre-wrap">
+                            {typeof children === 'string' ? renderAnimatedText(children) : children}
+                          </p>
+                        ),
+                      }}
                     >
                       {message.text}
                     </ReactMarkdown>

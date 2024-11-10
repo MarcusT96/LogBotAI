@@ -4,8 +4,11 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from pydantic import BaseModel
-from agent import ingest_multiple_documents, ask_question
+from agent import ask_question
+from knowledge import ingest_multiple_documents
 import io
+from fastapi.responses import StreamingResponse
+import asyncio
 
 # Add this class for the request body
 class QuestionRequest(BaseModel):
@@ -77,10 +80,12 @@ async def upload_documents(files: List[UploadFile] = File(...)) -> List[dict[str
 @app.post("/ask")
 async def ask(question: QuestionRequest):
     """
-    Endpoint to ask questions about the ingested documents
+    Endpoint to ask questions about the ingested documents with streaming response
     """
     try:
-        answer = ask_question(question.message)  # Use question.message instead of question
-        return {"status": "success", "answer": answer}
+        return StreamingResponse(
+            ask_question(question.message),
+            media_type="text/event-stream"
+        )
     except Exception as e:
         return {"status": "error", "message": str(e)}

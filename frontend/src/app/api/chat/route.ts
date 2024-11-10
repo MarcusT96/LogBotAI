@@ -1,41 +1,27 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
-  try {
-    const { message } = await req.json();
+    try {
+        const { message } = await req.json();
 
-    // Call your FastAPI backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/ask`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message: message })
-    });
+        const response = await fetch('http://localhost:8000/ask', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message }),
+        });
 
-    if (!response.ok) {
-      throw new Error('Backend API call failed');
+        // Forward the streaming response
+        return new Response(response.body, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+            },
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
-
-    const data = await response.json();
-
-    // Format the response to match our frontend's expected structure
-    const formattedResponse = {
-      id: Date.now(),
-      text: data.answer,
-      sender: 'ai' as const
-    };
-
-    return NextResponse.json(formattedResponse);
-  } catch (error) {
-    console.error('Chat API error:', error);
-    return NextResponse.json(
-      { 
-        id: Date.now(),
-        text: "Ett fel uppstod. Försök igen senare.",
-        sender: 'ai'
-      },
-      { status: 500 }
-    );
-  }
 } 
