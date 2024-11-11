@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_openai import AzureChatOpenAI
 from langchain_core.prompts import PromptTemplate
-from knowledge import find_similar_documents, CONTAINER_TTL
+from knowledge import find_similar_documents
 
 load_dotenv()
 
@@ -46,7 +46,6 @@ async def ask_question(question: str, session_id: str):
     <output_instructions>
     Please provide a clear and concise answer based on the context provided. If the context doesn't contain relevant information to answer the question, please say so.
     Speak Swedish.
-    Answer:
     </output_instructions>
     """)
     

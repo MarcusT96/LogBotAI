@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send } from "lucide-react"
@@ -20,30 +20,18 @@ interface MarkdownProps {
   children?: React.ReactNode;
 }
 
-const fadeInAnimation = `
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(1px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-`;
-
 export default function Component() {
   const [inputValue, setInputValue] = useState("")
   const [messages, setMessages] = useState<Message[]>([
     { 
       id: 1, 
       text: "Hur kan jag hjälpa dig med dina mötesanteckningar idag?", 
-      sender: 'ai' 
+      sender: 'ai'
     }
   ])
   const [isLoading, setIsLoading] = useState(false)
   const [messageIdCounter, setMessageIdCounter] = useState(2)
+  const [sessionId, setSessionId] = useState<string>("")
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -54,16 +42,6 @@ export default function Component() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, isLoading])
-
-  useEffect(() => {
-    const styleSheet = document.createElement("style")
-    styleSheet.textContent = fadeInAnimation
-    document.head.appendChild(styleSheet)
-
-    return () => {
-      document.head.removeChild(styleSheet)
-    }
-  }, [])
 
   const markdownComponents: Partial<Components> = {
     code: ({ node, inline, className, children, ...props }: MarkdownProps) => {
@@ -104,29 +82,13 @@ export default function Component() {
     }
   }
 
-  const renderAnimatedText = (text: string) => {
-    return (
-      <span className="inline-block">
-        {text.split('').map((char, index) => (
-          <span
-            key={index}
-            style={{
-              display: 'inline-block',
-              opacity: 0,
-              animation: `fadeIn 0.3s ease-out forwards`,
-              animationDelay: `${index * 0.02}s`,
-            }}
-          >
-            {char}
-          </span>
-        ))}
-      </span>
-    );
+  const renderText = (text: string) => {
+    return <span>{text}</span>;
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!inputValue.trim() || isLoading) return
+    if (!inputValue.trim() || isLoading || !sessionId) return
 
     const userMessage = {
       id: messageIdCounter,
@@ -145,14 +107,16 @@ export default function Component() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: userMessage.text }),
+        body: JSON.stringify({ 
+          message: userMessage.text,
+          session_id: sessionId 
+        }),
       })
 
       if (!response.ok) {
         throw new Error('Network response was not ok')
       }
 
-      // Create a new message for the assistant's response
       const assistantMessage: Message = {
         id: messageIdCounter + 1,
         text: '',
@@ -169,38 +133,40 @@ export default function Component() {
         let isFirstChunk = true
         
         const updateMessageWithDelay = async (text: string) => {
-            if (isFirstChunk) {
-                setIsLoading(false)  // Remove loading indicator on first chunk
-                isFirstChunk = false
-            }
-            
-            setMessages(prev => {
-                const newMessages = [...prev]
-                const lastMessage = newMessages[newMessages.length - 1]
-                lastMessage.text = text
-                return newMessages
-            })
-            // Add a small delay between updates for smoother appearance
-            await new Promise(resolve => setTimeout(resolve, 50))
-        }
+          if (isFirstChunk) {
+            setIsLoading(false)
+            isFirstChunk = false
+          }
+          
+          setMessages(prev => {
+            const newMessages = [...prev];
+            const lastMessage = newMessages[newMessages.length - 1];
+            newMessages[newMessages.length - 1] = {
+              ...lastMessage,
+              text: text
+            };
+            return newMessages;
+          });
+          
+          await new Promise(resolve => setTimeout(resolve, 50));
+        };
         
         while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            // Decode the chunk and add it to our buffer
-            const chunk = textDecoder.decode(value, { stream: true })
-            buffer += chunk
-            
-            // Update the message with the complete buffer
+          const { done, value } = await reader.read()
+          if (done) {
             await updateMessageWithDelay(buffer)
+            break
+          }
+
+          const chunk = textDecoder.decode(value, { stream: true })
+          buffer += chunk
+          await updateMessageWithDelay(buffer)
         }
         
-        // Final decode
         const finalChunk = textDecoder.decode()
         if (finalChunk) {
-            buffer += finalChunk
-            await updateMessageWithDelay(buffer)
+          buffer += finalChunk
+          await updateMessageWithDelay(buffer)
         }
       }
     } catch (error) {
@@ -214,6 +180,27 @@ export default function Component() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Effect to load session ID from localStorage
+  useEffect(() => {
+    const savedSessionId = localStorage.getItem('chatSessionId')
+    console.log('Retrieved session ID:', savedSessionId)
+    if (savedSessionId) {
+      setSessionId(savedSessionId)
+    }
+  }, [])
+
+  // Add warning if no session ID (no documents uploaded)
+  if (!sessionId) {
+    return (
+      <div className="h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center p-8 bg-white rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Inga dokument uppladdade</h2>
+          <p>Vänligen ladda upp dokument först för att starta en chatt.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -251,7 +238,9 @@ export default function Component() {
                         ...markdownComponents,
                         p: ({ children }) => (
                           <p className="whitespace-pre-wrap">
-                            {typeof children === 'string' ? renderAnimatedText(children) : children}
+                            {typeof children === 'string' && message.text === children ? (
+                              renderText(children)
+                            ) : children}
                           </p>
                         ),
                       }}

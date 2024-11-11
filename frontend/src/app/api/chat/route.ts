@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
     try {
-        const { message } = await req.json();
+        const { message, session_id } = await req.json();
 
         const response = await fetch('http://localhost:8000/ask', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ message }),
+            body: JSON.stringify({ message, session_id }),
         });
 
         // Forward the streaming response
