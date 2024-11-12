@@ -1,6 +1,7 @@
 'use client';
 
 import FileUpload from '@/components/fileUpload';
+import Header from '@/components/header';
 
 export default function Home() {
   const handleUploadComplete = () => {
@@ -8,6 +9,9 @@ export default function Home() {
   };
 
   return (
-    <FileUpload onUploadComplete={handleUploadComplete} />
+    <div className="min-h-screen">
+      <Header />
+      <FileUpload onUploadComplete={handleUploadComplete} />
+    </div>
   );
 }

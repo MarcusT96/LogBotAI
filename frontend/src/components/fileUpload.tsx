@@ -89,10 +89,10 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col relative">
+    <div className="flex flex-col relative">
       {/* Processing Overlay */}
       {isProcessing && (
-        <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center space-y-4">
             <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
             <p className="text-gray-800 font-medium">Bearbetar filer...</p>
@@ -100,7 +100,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
         </div>
       )}
 
-      <main className="flex-1 flex flex-col items-center p-4 overflow-y-auto">
+      <main className="flex-1 flex flex-col items-center p-4 overflow-y-auto mt-16">
         <div className="max-w-4xl w-full space-y-8 pt-8">
           {/* Hero Section */}
           <div className="text-center p-8">
@@ -117,67 +117,75 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
             </p>
           </div>
 
-          {/* Upload area - remove isProcessing styles since we have the overlay */}
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`card-gradient border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all shadow-lg
-              ${isDragging ? 'border-indigo-500 bg-indigo-50/50' : 'border-indigo-200'}
-              hover:border-indigo-500 hover:shadow-xl`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".docx"
-              onChange={handleFileSelect}
-              className="hidden"
-              multiple
-            />
-            <Upload className="mx-auto h-12 w-12 text-indigo-500" />
-            <p className="mt-2 text-sm text-gray-600">
-              Dra och släpp dina .docx filer här eller
-            </p>
-            <Button 
-              variant="outline" 
-              className="mt-2 border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50" 
-              onClick={handleButtonClick}
+          <div className="space-y-4">
+            {/* Upload area */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`card-gradient border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all shadow-lg
+                ${isDragging ? 'border-indigo-500 bg-indigo-50/50' : 'border-indigo-200'}
+                hover:border-indigo-500 hover:shadow-xl`}
             >
-              Välj filer
-            </Button>
-          </div>
-
-          {/* File list */}
-          {files.length > 0 && (
-            <div className="space-y-4">
-              {files.map((file, index) => (
-                <div
-                  key={index}
-                  className="card-gradient flex items-center justify-between p-4 rounded-xl shadow-md transition-all hover:shadow-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <FileText className="h-6 w-6 text-indigo-500" />
-                    <span className="text-sm font-medium text-gray-700">{file.name}</span>
-                  </div>
-                  <button
-                    onClick={() => removeFile(file)}
-                    className="text-gray-400 hover:text-indigo-500 transition-colors"
-                    disabled={isProcessing}
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-              ))}
-
-              <Button
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
-                onClick={handleUpload}
-                disabled={isProcessing}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".docx"
+                onChange={handleFileSelect}
+                className="hidden"
+                multiple
+              />
+              <Upload className="mx-auto h-12 w-12 text-indigo-500" />
+              <p className="mt-2 text-sm text-gray-600">
+                Dra och släpp dina .docx filer här eller
+              </p>
+              <Button 
+                variant="outline" 
+                className="mt-2 border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50" 
+                onClick={handleButtonClick}
               >
-                Ladda upp
+                Välj filer
               </Button>
             </div>
-          )}
+
+            {/* Compact File List and Upload Button */}
+            {files.length > 0 && (
+              <div className="flex flex-col items-center space-y-4">
+                {/* File Icons */}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {files.map((file, index) => (
+                    <div
+                      key={index}
+                      className="relative group"
+                    >
+                      <div className="card-gradient p-3 rounded-lg shadow-sm flex items-center space-x-2 hover:shadow-md transition-all">
+                        <FileText className="h-5 w-5 text-indigo-500" />
+                        <span className="text-xs text-gray-600 max-w-[100px] truncate">
+                          {file.name}
+                        </span>
+                        <button
+                          onClick={() => removeFile(file)}
+                          className="opacity-0 group-hover:opacity-100 absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md hover:bg-red-50 transition-all"
+                          disabled={isProcessing}
+                        >
+                          <X className="h-3 w-3 text-gray-400 hover:text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Upload Button */}
+                <Button
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all px-8"
+                  onClick={handleUpload}
+                  disabled={isProcessing}
+                >
+                  Ladda upp
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

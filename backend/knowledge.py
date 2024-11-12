@@ -99,9 +99,9 @@ async def ingest_single_document(file: io.BytesIO, session_id: str) -> dict:
             "message": str(e)
         }
 
-async def find_similar_documents(query: str, session_id: str, top_k: int = 5):
+async def find_similar_documents(query: str, session_id: str, top_k: int = 5) -> List[dict]:
     """
-    Find similar documents for specific session, returning only content and source file
+    Find similar documents for specific session, returning content with source metadata
     """
     try:
         query_embedding = embedding_model.embed_query(query)
@@ -130,9 +130,15 @@ async def find_similar_documents(query: str, session_id: str, top_k: int = 5):
                 np.linalg.norm(query_embedding) * np.linalg.norm(doc_embedding)
             )
             
-            # Create a simplified result object with only needed fields
+            # Format the content with source metadata
+            formatted_content = f"""
+<document source="{item['metadata']['source_file']}">
+{item['content']}
+</document>"""
+            
+            # Create a result object with formatted content
             result = {
-                "content": item['content'],
+                "content": formatted_content,
                 "source": item['metadata']['source_file']
             }
             similarities.append((result, similarity))
