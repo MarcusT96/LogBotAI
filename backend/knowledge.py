@@ -9,10 +9,7 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import List, Optional
 import uuid
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_experimental.text_splitter import SemanticChunker
-from langchain_community.document_transformers import Html2TextTransformer
-import tiktoken
 
 load_dotenv()
 
