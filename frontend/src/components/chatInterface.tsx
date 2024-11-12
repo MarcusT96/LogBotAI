@@ -184,12 +184,12 @@ export default function Component() {
 
   // Effect to load session ID from localStorage
   useEffect(() => {
-    const savedSessionId = localStorage.getItem('chatSessionId')
-    console.log('Retrieved session ID:', savedSessionId)
+    const savedSessionId = localStorage.getItem('chatSessionId');
+    console.log('Retrieved session ID:', savedSessionId);
     if (savedSessionId) {
-      setSessionId(savedSessionId)
+      setSessionId(savedSessionId);
     }
-  }, [])
+  }, []);
 
   // Add warning if no session ID (no documents uploaded)
   if (!sessionId) {

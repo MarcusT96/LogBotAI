@@ -44,6 +44,7 @@ async def ask_question(question: str, session_id: str):
     </user_question>
 
     <output_instructions>
+    Read through the context and answer the question based on the information provided.
     Please provide a clear and concise answer based on the context provided. If the context doesn't contain relevant information to answer the question, please say so.
     Speak Swedish.
     </output_instructions>

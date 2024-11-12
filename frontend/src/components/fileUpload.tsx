@@ -1,18 +1,20 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, X, FileText } from 'lucide-react';
+import { Upload, X, FileText, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { useRouter } from 'next/navigation';
 
 interface FileUploadProps {
   onUploadComplete: () => void;
-  isProcessing: boolean;
 }
 
-export default function FileUpload({ onUploadComplete, isProcessing }: FileUploadProps) {
+export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -54,6 +56,7 @@ export default function FileUpload({ onUploadComplete, isProcessing }: FileUploa
 
   const handleUpload = async () => {
     if (files.length > 0) {
+      setIsProcessing(true);
       try {
         const formData = new FormData();
         files.forEach(file => {
@@ -69,15 +72,34 @@ export default function FileUpload({ onUploadComplete, isProcessing }: FileUploa
           throw new Error('Upload failed');
         }
 
+        const data = await response.json();
+        
+        if (data.session_id) {
+          localStorage.setItem('chatSessionId', data.session_id);
+        }
+
         onUploadComplete();
+        router.push('/chat');
       } catch (error) {
         console.error('Upload error:', error);
+      } finally {
+        setIsProcessing(false);
       }
     }
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-[calc(100vh-4rem)] flex flex-col relative">
+      {/* Processing Overlay */}
+      {isProcessing && (
+        <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+            <p className="text-gray-800 font-medium">Bearbetar filer...</p>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 flex flex-col items-center p-4 overflow-y-auto">
         <div className="max-w-4xl w-full space-y-8 pt-8">
           {/* Hero Section */}
@@ -95,14 +117,14 @@ export default function FileUpload({ onUploadComplete, isProcessing }: FileUploa
             </p>
           </div>
 
-          {/* Upload area */}
+          {/* Upload area - remove isProcessing styles since we have the overlay */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={`card-gradient border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all shadow-lg
               ${isDragging ? 'border-indigo-500 bg-indigo-50/50' : 'border-indigo-200'}
-              ${isProcessing ? 'pointer-events-none opacity-50' : 'hover:border-indigo-500 hover:shadow-xl'}`}
+              hover:border-indigo-500 hover:shadow-xl`}
           >
             <input
               ref={fileInputRef}
@@ -119,7 +141,6 @@ export default function FileUpload({ onUploadComplete, isProcessing }: FileUploa
             <Button 
               variant="outline" 
               className="mt-2 border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50" 
-              disabled={isProcessing}
               onClick={handleButtonClick}
             >
               Välj filer
@@ -151,7 +172,7 @@ export default function FileUpload({ onUploadComplete, isProcessing }: FileUploa
               <Button
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all"
                 onClick={handleUpload}
-                disabled={isProcessing || files.length === 0}
+                disabled={isProcessing}
               >
                 Ladda upp
               </Button>
