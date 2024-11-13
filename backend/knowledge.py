@@ -96,53 +96,71 @@ async def ingest_single_document(file: io.BytesIO, session_id: str) -> dict:
             "message": str(e)
         }
 
-async def find_similar_documents(query: str, session_id: str, top_k: int = 5) -> List[dict]:
+async def find_similar_documents(query: str, session_id: str, top_k: int = 10, similarity_threshold: float = 0.4):
     """
-    Find similar documents for specific session, returning content with source metadata
+    Find similar documents using a multi-stage retrieval process:
+    1. Initial similarity search
+    2. MMR for diversity
+    3. Reranking of top results
     """
     try:
         query_embedding = embedding_model.embed_query(query)
         
-        # Query documents for this session
-        query = """
-        SELECT c.content, c.metadata, c.embedding
-        FROM c 
-        WHERE c.session_id = @session_id
-        """
-        parameters = [
-            {"name": "@session_id", "value": session_id}
-        ]
-        
+        # Initial retrieval
         items = list(container.query_items(
-            query=query,
-            parameters=parameters,
+            query="SELECT c.content, c.metadata, c.embedding FROM c WHERE c.session_id = @session_id",
+            parameters=[{"name": "@session_id", "value": session_id}],
             enable_cross_partition_query=True
         ))
         
-        # Calculate cosine similarity
-        similarities = []
+        # Calculate initial similarities
+        initial_results = []
+        doc_embeddings = []
+        doc_contents = []
+        
         for item in items:
             doc_embedding = item['embedding']
             similarity = np.dot(query_embedding, doc_embedding) / (
                 np.linalg.norm(query_embedding) * np.linalg.norm(doc_embedding)
             )
             
-            # Format the content with source metadata
-            formatted_content = f"""
+            if similarity >= similarity_threshold:
+                formatted_content = f"""
 <document source="{item['metadata']['source_file']}">
 {item['content']}
 </document>"""
-            
-            # Create a result object with formatted content
-            result = {
-                "content": formatted_content,
-                "source": item['metadata']['source_file']
-            }
-            similarities.append((result, similarity))
+                
+                initial_results.append({
+                    "content": formatted_content,
+                    "source": item['metadata']['source_file'],
+                    "similarity_score": similarity
+                })
+                doc_embeddings.append(doc_embedding)
+                doc_contents.append(formatted_content)
         
-        # Sort by similarity and get top_k results
-        similarities.sort(key=lambda x: x[1], reverse=True)
-        return [item for item, _ in similarities[:top_k]]
+        # Apply MMR for diversity
+        if doc_embeddings:
+            diverse_contents = mmr(
+                query_embedding=query_embedding,
+                doc_embeddings=doc_embeddings,
+                doc_contents=doc_contents,
+                lambda_param=0.7,  # Balance between relevance and diversity
+                k=min(len(doc_contents), top_k)
+            )
+            
+            # Create results list from diverse contents
+            diverse_results = [
+                {"content": content, "source": content.split('source="')[1].split('">')[0]}
+                for content in diverse_contents
+            ]
+            
+            # Rerank the diverse results
+            final_results = await rerank_results(query, diverse_results, rerank_k=7)
+            
+            print(f"Found {len(final_results)} documents after reranking")
+            return final_results
+            
+        return []
     
     except Exception as e:
         print(f"Error finding similar documents: {str(e)}")
@@ -180,3 +198,73 @@ async def ingest_multiple_documents(files: List[io.BytesIO], session_id: str) ->
             })
     
     return results
+
+def mmr(query_embedding, doc_embeddings, doc_contents, lambda_param=0.5, k=5):
+    """
+    Maximal Marginal Relevance to get diverse but relevant results
+    """
+    selected_indices = []
+    remaining_indices = list(range(len(doc_embeddings)))
+    
+    for _ in range(k):
+        if not remaining_indices:
+            break
+            
+        # Calculate relevance scores
+        relevance_scores = [
+            np.dot(query_embedding, doc_embeddings[idx]) / (
+                np.linalg.norm(query_embedding) * np.linalg.norm(doc_embeddings[idx])
+            )
+            for idx in remaining_indices
+        ]
+        
+        if not selected_indices:
+            # First selection based on relevance only
+            selected_idx = remaining_indices[np.argmax(relevance_scores)]
+        else:
+            # Calculate diversity penalty
+            diversity_scores = [
+                max([
+                    np.dot(doc_embeddings[idx], doc_embeddings[selected]) / (
+                        np.linalg.norm(doc_embeddings[idx]) * np.linalg.norm(doc_embeddings[selected])
+                    )
+                    for selected in selected_indices
+                ])
+                for idx in remaining_indices
+            ]
+            
+            # Combined score with MMR formula
+            mmr_scores = [
+                lambda_param * rel_score - (1 - lambda_param) * div_score
+                for rel_score, div_score in zip(relevance_scores, diversity_scores)
+            ]
+            
+            selected_idx = remaining_indices[np.argmax(mmr_scores)]
+            
+        selected_indices.append(selected_idx)
+        remaining_indices.remove(selected_idx)
+    
+    return [doc_contents[idx] for idx in selected_indices]
+
+async def rerank_results(query: str, initial_results: List[dict], rerank_k: int = 3):
+    """
+    Re-rank top results using more expensive but accurate semantic similarity
+    """
+    if len(initial_results) <= rerank_k:
+        return initial_results
+        
+    # Get more detailed embeddings for reranking
+    rerank_embeddings = embedding_model.embed_documents([r['content'] for r in initial_results[:rerank_k]])
+    query_embedding = embedding_model.embed_query(query)
+    
+    # Calculate semantic similarity scores
+    reranked_results = []
+    for idx, result in enumerate(initial_results[:rerank_k]):
+        semantic_score = np.dot(query_embedding, rerank_embeddings[idx])
+        reranked_results.append((result, semantic_score))
+    
+    # Sort by new scores
+    reranked_results.sort(key=lambda x: x[1], reverse=True)
+    
+    # Return reranked results plus any remaining results
+    return [r[0] for r in reranked_results] + initial_results[rerank_k:]

@@ -1,23 +1,58 @@
-# Base image
-FROM node:20-alpine
+FROM node:20-alpine AS builder
 
 # Set working directory
-WORKDIR /app
+WORKDIR /frontend
 
-# Copy package files
+# Copy package files from frontend directory
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --legacy-peer-deps
 
-# Copy the rest of the application
+# Copy application code
 COPY . .
 
-# Build the application
+# Set environment variables for build
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+ENV DISABLE_ESLINT_PLUGIN=true
+
+# Build application
 RUN npm run build
 
-# Expose the port the app runs on
+# Production stage
+FROM node:20-alpine AS runner
+
+# Set working directory
+WORKDIR /frontend
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy standalone build output
+COPY --from=builder /frontend/.next/standalone ./
+COPY --from=builder /frontend/.next/static ./.next/static
+
+# Create public directory if it doesn't exist
+RUN mkdir -p ./public
+
+# Set permissions
+RUN chown -R nextjs:nodejs /frontend
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
 EXPOSE 3000
 
+# Set hostname
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
 # Start the application
-CMD ["npm", "start"] 
+CMD ["node", "server.js"] 

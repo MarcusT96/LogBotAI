@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send } from "lucide-react"
-import ReactMarkdown, { Components } from 'react-markdown'
+import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import Header from '@/components/header';
 
@@ -14,12 +14,6 @@ interface Message {
   sender: 'user' | 'ai';
 }
 
-interface MarkdownProps {
-  node?: any;
-  inline?: boolean;
-  className?: string;
-  children?: React.ReactNode;
-}
 
 export default function Component() {
   const [inputValue, setInputValue] = useState("")
@@ -43,45 +37,6 @@ export default function Component() {
   useEffect(() => {
     scrollToBottom()
   }, [messages, isLoading])
-
-  const markdownComponents: Partial<Components> = {
-    code: ({ node, inline, className, children, ...props }: MarkdownProps) => {
-      return (
-        <code
-          className={`${inline ? 'bg-gray-100 rounded px-1' : 'block bg-gray-100 p-2 rounded-lg'} ${className || ''}`}
-          {...props}
-        >
-          {children}
-        </code>
-      )
-    },
-    a: ({ node, className, children, ...props }: MarkdownProps) => {
-      return (
-        <a
-          className="text-blue-500 hover:underline"
-          target="_blank"
-          rel="noopener noreferrer"
-          {...props}
-        >
-          {children}
-        </a>
-      )
-    },
-    ul: ({ node, className, children, ...props }: MarkdownProps) => {
-      return (
-        <ul className="list-disc pl-4 space-y-1" {...props}>
-          {children}
-        </ul>
-      )
-    },
-    ol: ({ node, className, children, ...props }: MarkdownProps) => {
-      return (
-        <ol className="list-decimal pl-4 space-y-1" {...props}>
-          {children}
-        </ol>
-      )
-    }
-  }
 
   const renderText = (text: string) => {
     return <span>{text}</span>;
@@ -241,7 +196,6 @@ export default function Component() {
                           prose-blockquote:text-gray-800
                           prose-li:marker:text-gray-800"
                         components={{
-                          ...markdownComponents,
                           p: ({ children }) => (
                             <p className="whitespace-pre-wrap">
                               {typeof children === 'string' && message.text === children ? (
