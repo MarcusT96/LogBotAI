@@ -16,7 +16,7 @@ class UploadResponse(BaseModel):
 
 class QuestionRequest(BaseModel):
     message: str
-    session_id: str  # Add session_id to question requests
+    session_id: str
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
@@ -92,3 +92,29 @@ async def ask(question: QuestionRequest):
         )
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+if __name__ == "__main__":
+    import os
+    from gunicorn.app.base import BaseApplication
+
+    class StandaloneApplication(BaseApplication):
+        def __init__(self, app, options=None):
+            self.options = options or {}
+            self.application = app
+            super().__init__()
+
+        def load_config(self):
+            config = {key: value for key, value in self.options.items()
+                      if key in self.cfg.settings and value is not None}
+            for key, value in config.items():
+                self.cfg.set(key.lower(), value)
+
+        def load(self):
+            return self.application
+
+    options = {
+        'bind': f"0.0.0.0:{os.environ.get('PORT', '8000')}",
+        'workers': 4,
+        'worker_class': 'uvicorn.workers.UvicornWorker',
+    }
+    StandaloneApplication(app, options).run()

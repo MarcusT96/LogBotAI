@@ -4,10 +4,12 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    
     // Send to FastAPI backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/upload-documents`, {
+    const response = await fetch(`${backendUrl}/upload-documents`, {
       method: 'POST',
-      body: formData, // FastAPI expects multipart/form-data
+      body: formData,
     });
 
     if (!response.ok) {

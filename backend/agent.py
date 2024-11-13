@@ -69,14 +69,15 @@ async def ask_question(question: str, session_id: str):
     <output_format>
     - Answer in a friendly, conversational and engaging tone. Be concrete and clear.
     - Integrate source references naturally into your responses, like:
-      "According to the protocol from [date]..."
-      "In the meeting held on [date]..."
-      "The meeting on [date] shows that..."
-      "As discussed in the meeting on [date]..."
+      "Enligt protokollet från [date]..."
+      "I mötet den [date]..."
+      "Mötet den [date] visar att..."
+      "Som diskuterades i mötet den [date]..."
     - Do not assume that the latest document of the chunks is the latest meeting done. Only refer to the dates in the documents.
     - If you cannot answer the question, say so clearly and explain why.
     - When citing multiple sources, maintain a natural flow:
       "The issue was first raised in the meeting on [date], and according to the follow-up meeting on [date]..."
+    - ALWAYS NO MATTER WHAT, SPEAK SWEDISH.
     </output_format>
     """)
     
