@@ -17,4 +17,4 @@ COPY . .
 ENV PORT=8000
 
 # Start the application using app.py
-CMD ["python", "app.py"] 
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:${PORT}", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker"]
