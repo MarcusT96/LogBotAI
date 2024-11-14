@@ -4,7 +4,10 @@ export async function POST(req: Request) {
     try {
         const { message, session_id } = await req.json();
 
-        const response = await fetch('http://localhost:8000/ask', {
+        // Use regular env variable for server-side
+        const backendUrl = process.env.BACKEND_URL || 'https://logbotai.azurewebsites.net'
+        console.log('Sending request to:', backendUrl); // Debug log
+        const response = await fetch(`${backendUrl}/ask`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

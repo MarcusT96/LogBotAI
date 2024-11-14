@@ -4,7 +4,9 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    // Use regular env variable for server-side
+    const backendUrl = process.env.BACKEND_URL || 'https://logbotai-backend.azurewebsites.net'
+    
     
     // Send to FastAPI backend
     const response = await fetch(`${backendUrl}/upload-documents`, {
@@ -13,7 +15,9 @@ export async function POST(req: Request) {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to upload files');
+      const errorText = await response.text();
+      console.error('Backend error:', errorText);
+      throw new Error(`Failed to upload files: ${errorText}`);
     }
 
     const data = await response.json();
