@@ -13,11 +13,11 @@ AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 AZURE_OPENAI_MINI_ENDPOINT = os.getenv("AZURE_OPENAI_MINI_ENDPOINT")
 # Initialize the LLM models
 chat_model = AzureChatOpenAI(
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    azure_endpoint=AZURE_OPENAI_MINI_ENDPOINT,
     api_key=AZURE_OPENAI_API_KEY,
     api_version=AZURE_OPENAI_API_VERSION,
-    deployment_name="gpt-4o-meckly",
-    temperature=0.3,
+    deployment_name="MecklyGPT4oMini",
+    temperature=0.5,
     streaming=True
 )
 
