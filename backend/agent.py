@@ -35,9 +35,8 @@ async def optimize_query(query: str) -> str:
     """
     prompt = f"""
     <role>
-    You are LogBot's Query Optimizer. Your task is to reformulate questions into the most relevant search terms
-    that would appear in meeting minutes and protocols. Focus on converting questions into how they would appear
-    as agenda items, section headings, and key discussion points.
+    You are LogBot's Query Optimizer. Your task is to convert questions into 3 key search phrases
+    that would appear in meeting minutes, focusing on the most essential terms and concepts.
     </role>
 
     <user_question>
@@ -45,34 +44,23 @@ async def optimize_query(query: str) -> str:
     </user_question>
 
     <instructions>
-    1. Convert the question into potential headlines and key phrases
-    2. Think about how this topic would be documented in meeting minutes
-    3. Include variations of key terms that might appear in protocols
-    4. Consider both specific details and broader related concepts
-    5. Focus on administrative and formal language used in protocols
+    1. Extract only the most essential search terms
+    2. Create 3 alternative phrasings
+    3. Use formal protocol language
     </instructions>
 
     <output_format>
-    - Format as a comma-separated list of search phrases
-    - Include both specific terms and related variations
-    - Use formal protocol language
-    - Include relevant administrative terms
-    - Keep original proper nouns (names, places, etc.)
-    - Always speak Swedish.
+    Return exactly 3 comma-separated phrases that capture the core search intent.
     </output_format>
 
     <example>
     Question: "Hur har Trafikverket planerat att minska bullernivåerna längs järnvägen?"
-    Answer: Trafikverkets bulleråtgärder, bullerdämpande åtgärder järnväg, åtgärdsplan buller, 
-    bullernivåer järnvägstrafik, implementering bullerreducering, handlingsplan järnvägsbuller
+    Answer: trafikverket bullerdämpande åtgärder, åtgärdsplan järnvägsbuller, bullernivåer järnväg
     </example>
     """
 
     response = await query_optimizer.ainvoke(prompt)
-    optimized_query = response.content.strip()
-    print(f"Original query: {query}")
-    print(f"Optimized query: {optimized_query}")
-    return optimized_query
+    return response.content.strip()
 
 async def ask_question(question: str, session_id: str):
     """

@@ -4,9 +4,8 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     
-    // Use regular env variable for server-side
-    const backendUrl = process.env.BACKEND_URL || 'https://logbotai-backend.azurewebsites.net'
-    
+    // Add http:// and correct port
+    const backendUrl = "http://localhost:8000"
     
     // Send to FastAPI backend
     const response = await fetch(`${backendUrl}/upload-documents`, {

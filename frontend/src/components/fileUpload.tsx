@@ -13,6 +13,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -95,7 +96,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center space-y-4">
             <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-            <p className="text-gray-800 font-medium">Bearbetar filer...</p>
+            <p className="text-gray-800 font-medium">{processingProgress || 'Bearbetar filer...'}</p>
           </div>
         </div>
       )}
@@ -105,15 +106,15 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
           {/* Hero Section */}
           <div className="text-center p-8">
             <div className="inline-block text-indigo-600 mb-2 px-6 py-2 rounded-full bg-indigo-50 text-sm font-medium shadow-sm">
-              Mötesanteckningar på dina villkor
+              Få ut mer av dina mötesanteckningar – på ditt sätt
             </div>
             <h2 className="text-5xl font-bold mb-4 leading-tight">
-              Personlig analys med en{' '}
-              <span className="hero-gradient">AI assistent</span>
+              <span className="hero-gradient">Din AI-assistent</span> för möten
             </h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-6">
-              Lås upp potentialen i dina mötesanteckningar med vår innovativa AI. Vår plattform hjälper dig att 
-              analysera innehållet i din takt, med fokus på det som är viktigt för dig.
+              Upptäck kraften i dina mötesprotokoll med vår smarta AI-plattform. Ladda upp dina anteckningar, 
+              analysera dem i din egen takt, och låt AI hjälpa dig att fokusera på det som verkligen betyder något. 
+              Förstå sammanhang, hitta nyckelinsikter och få full koll – enklare än någonsin.
             </p>
           </div>
 

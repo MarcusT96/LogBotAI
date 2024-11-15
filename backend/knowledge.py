@@ -46,8 +46,8 @@ class ProtocolSplitter:
     
     def split_text(self, text: str) -> List[dict]:
         chunks = []
-        current_chunk = ""
-        current_section = ""
+        current_header = ""
+        current_content = ""
         lines = text.split('\n')
         
         for line in lines:
@@ -55,27 +55,42 @@ class ProtocolSplitter:
             is_new_section = any(re.match(pattern, line) for pattern in self.section_patterns)
             
             if is_new_section:
-                # Save previous chunk if it exists
-                if current_chunk.strip():
+                # Save previous chunk if it exists and has content
+                if current_header and current_content.strip():
                     chunks.append({
-                        "content": current_chunk.strip(),
+                        "content": f"{current_header}\n{current_content.strip()}",
                         "metadata": {
-                            "section": current_section,
+                            "section": current_header.split('.')[0] if '.' in current_header else current_header,
                             "type": "content"
                         }
                     })
-                current_chunk = line
-                current_section = line.split('.')[0] if '.' in line else line
+                current_header = line
+                current_content = ""
             else:
-                current_chunk += "\n" + line
+                # Add line to current content if we have a header
+                if current_header:
+                    current_content += "\n" + line
+                else:
+                    # If no header yet, this might be initial content (like meeting info)
+                    current_content += line
         
-        # Add the last chunk
-        if current_chunk.strip():
+        # Add the last chunk if it exists and has content
+        if current_header and current_content.strip():
             chunks.append({
-                "content": current_chunk.strip(),
+                "content": f"{current_header}\n{current_content.strip()}",
                 "metadata": {
-                    "section": current_section,
+                    "section": current_header.split('.')[0] if '.' in current_header else current_header,
                     "type": "content"
+                }
+            })
+        
+        # Handle any initial content without a header (like meeting info)
+        if not current_header and current_content.strip():
+            chunks.append({
+                "content": current_content.strip(),
+                "metadata": {
+                    "section": "Mötesinfo",
+                    "type": "header"
                 }
             })
         
@@ -139,9 +154,9 @@ async def ingest_single_document(file: io.BytesIO, session_id: str) -> dict:
             "message": str(e)
         }
 
-async def find_similar_documents(query: str, session_id: str, top_k: int = 10, similarity_threshold: float = 0.4):
+async def find_similar_documents(query: str, session_id: str, top_k: int = 15, similarity_threshold: float = 0.4):
     """
-    Find similar documents using cosine similarity
+    Find similar documents using cosine similarity and sort chronologically
     """
     try:
         query_embedding = embedding_model.embed_query(query)
@@ -167,18 +182,25 @@ async def find_similar_documents(query: str, session_id: str, top_k: int = 10, s
 {item['content']}
 </document>"""
                 
+                # Extract date from filename (assuming format like 'Motesprotokoll_..._2024-03-05.docx')
+                date_str = item['metadata']['source_file'].split('_')[-1].split('.')[0]
+                
                 similarities.append({
                     "content": formatted_content,
                     "source": item['metadata']['source_file'],
-                    "similarity_score": similarity
+                    "similarity_score": similarity,
+                    "date": date_str
                 })
         
         # Sort by similarity and get top_k results
         similarities.sort(key=lambda x: x["similarity_score"], reverse=True)
-        results = similarities[:top_k]
+        top_results = similarities[:top_k]
         
-        print(f"Found {len(results)} relevant documents")
-        return results
+        # Sort the top results chronologically
+        top_results.sort(key=lambda x: x["date"])
+        
+
+        return [{"content": r["content"], "source": r["source"]} for r in top_results]
             
     except Exception as e:
         print(f"Error finding similar documents: {str(e)}")
