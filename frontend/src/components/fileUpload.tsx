@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, X, FileText, Loader2 } from 'lucide-react';
+import { Upload, X, FileText, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useRouter } from 'next/navigation';
 
@@ -14,6 +14,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -58,6 +59,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
   const handleUpload = async () => {
     if (files.length > 0) {
       setIsProcessing(true);
+      setError(null);
       try {
         const formData = new FormData();
         files.forEach(file => {
@@ -70,7 +72,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
         });
 
         if (!response.ok) {
-          throw new Error('Upload failed');
+          throw new Error('Uppladdningen misslyckades. Vänligen försök igen.');
         }
 
         const data = await response.json();
@@ -83,6 +85,7 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
         router.push('/chat');
       } catch (error) {
         console.error('Upload error:', error);
+        setError('Något gick fel vid uppladdningen. Vänligen försök igen.');
       } finally {
         setIsProcessing(false);
       }
@@ -91,6 +94,22 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
 
   return (
     <div className="flex flex-col relative">
+      {/* Error Message Overlay */}
+      {error && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center space-y-4 max-w-md mx-4">
+            <AlertCircle className="h-8 w-8 text-red-600" />
+            <p className="text-gray-800 font-medium text-center">{error}</p>
+            <Button 
+              onClick={() => setError(null)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Stäng
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Processing Overlay */}
       {isProcessing && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
