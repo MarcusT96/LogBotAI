@@ -4,8 +4,8 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     
-    // Add http:// and correct port
-    const backendUrl = "http://localhost:8000"
+    const backendUrl = process.env.BACKEND_URL
+
     
     // Send to FastAPI backend
     const response = await fetch(`${backendUrl}/upload-documents`, {

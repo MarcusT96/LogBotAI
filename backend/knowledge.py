@@ -156,7 +156,7 @@ async def ingest_single_document(file: io.BytesIO, session_id: str) -> dict:
 
 async def find_similar_documents(query: str, session_id: str, top_k: int = 15, similarity_threshold: float = 0.4):
     """
-    Find similar documents using cosine similarity and sort chronologically
+    Find similar documents using cosine similarity
     """
     try:
         query_embedding = embedding_model.embed_query(query)
@@ -182,24 +182,17 @@ async def find_similar_documents(query: str, session_id: str, top_k: int = 15, s
 {item['content']}
 </document>"""
                 
-                # Extract date from filename (assuming format like 'Motesprotokoll_..._2024-03-05.docx')
-                date_str = item['metadata']['source_file'].split('_')[-1].split('.')[0]
-                
                 similarities.append({
                     "content": formatted_content,
                     "source": item['metadata']['source_file'],
-                    "similarity_score": similarity,
-                    "date": date_str
+                    "similarity_score": similarity
                 })
         
-        # Sort by similarity and get top_k results
+        # Sort only by similarity score
         similarities.sort(key=lambda x: x["similarity_score"], reverse=True)
         top_results = similarities[:top_k]
         
-        # Sort the top results chronologically
-        top_results.sort(key=lambda x: x["date"])
-        
-
+        print(f"Found {len(top_results)} relevant documents")
         return [{"content": r["content"], "source": r["source"]} for r in top_results]
             
     except Exception as e:

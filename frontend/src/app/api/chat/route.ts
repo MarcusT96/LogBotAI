@@ -4,9 +4,8 @@ export async function POST(req: Request) {
     try {
         const { message, session_id } = await req.json();
 
-        // Add http:// and correct port
-        const backendUrl = "http://localhost:8000"
-        console.log('Sending request to:', backendUrl);
+        const backendUrl = process.env.BACKEND_URL
+
         
         const response = await fetch(`${backendUrl}/ask`, {
             method: 'POST',
