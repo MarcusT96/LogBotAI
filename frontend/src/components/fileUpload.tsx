@@ -109,12 +109,11 @@ export default function FileUpload({ onUploadComplete }: FileUploadProps) {
               Få ut mer av dina mötesanteckningar – på ditt sätt
             </div>
             <h2 className="text-5xl font-bold mb-4 leading-tight">
-              <span className="hero-gradient">Din AI-assistent</span> för möten
+              Dina protokoll <span className="hero-gradient">stärkta med AI</span>
             </h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto mb-6">
-              Upptäck kraften i dina mötesprotokoll med vår smarta AI-plattform. Ladda upp dina anteckningar, 
-              analysera dem i din egen takt, och låt AI hjälpa dig att fokusera på det som verkligen betyder något. 
-              Förstå sammanhang, hitta nyckelinsikter och få full koll – enklare än någonsin.
+              Spara timmar av arbete genom att chatta med dina protokoll! Låt vår AI analysera dina mötesprotokoll och få 
+              direkt tillgång till viktiga beslut och åtgärdspunkter genom en enkel konversation. 
             </p>
           </div>
 
