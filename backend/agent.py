@@ -13,10 +13,10 @@ AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 AZURE_OPENAI_MINI_ENDPOINT = os.getenv("AZURE_OPENAI_MINI_ENDPOINT")
 # Initialize the LLM models
 chat_model = AzureChatOpenAI(
-    azure_endpoint=AZURE_OPENAI_MINI_ENDPOINT,
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
     api_key=AZURE_OPENAI_API_KEY,
     api_version=AZURE_OPENAI_API_VERSION,
-    deployment_name="MecklyGPT4oMini",
+    deployment_name="gpt-4o-meckly",
     temperature=0.5,
     streaming=True
 )
@@ -26,7 +26,7 @@ query_optimizer = AzureChatOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     api_version=AZURE_OPENAI_API_VERSION,
     deployment_name="MecklyGPT4oMini",
-    temperature=0
+    temperature=0.3
 )
 
 async def optimize_query(query: str) -> str:
@@ -122,7 +122,7 @@ async def ask_question(question: str, session_id: str):
     <output_format>
     Structure your response naturally:
     1. Use conversational date formats
-    2. Keep chronological order
+    2. Keep chronological order of the dates
     3. Make it easy to read
     
     CORRECT EXAMPLES:
