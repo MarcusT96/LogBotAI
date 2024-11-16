@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'LogBotAI',
-  description: 'AI-driven meeting minutes analysis',
+  description: 'Dina mötesprotokoll med AI',
 };
 
 export default function RootLayout({
