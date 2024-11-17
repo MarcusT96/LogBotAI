@@ -154,7 +154,7 @@ async def ingest_single_document(file: io.BytesIO, session_id: str) -> dict:
             "message": str(e)
         }
 
-async def find_similar_documents(query: str, session_id: str, top_k: int = 15, similarity_threshold: float = 0.4):
+async def find_similar_documents(query: str, session_id: str, top_k: int = 20):
     """
     Find similar documents using cosine similarity
     """
@@ -176,23 +176,22 @@ async def find_similar_documents(query: str, session_id: str, top_k: int = 15, s
                 np.linalg.norm(query_embedding) * np.linalg.norm(doc_embedding)
             )
             
-            if similarity >= similarity_threshold:
-                formatted_content = f"""
+            formatted_content = f"""
 <document source="{item['metadata']['source_file']}">
 {item['content']}
 </document>"""
-                
-                similarities.append({
-                    "content": formatted_content,
-                    "source": item['metadata']['source_file'],
-                    "similarity_score": similarity
-                })
+            
+            similarities.append({
+                "content": formatted_content,
+                "source": item['metadata']['source_file'],
+                "similarity_score": similarity
+            })
         
-        # Sort only by similarity score
+        # Sort by similarity score and get top k results
         similarities.sort(key=lambda x: x["similarity_score"], reverse=True)
         top_results = similarities[:top_k]
         
-        print(f"Found {len(top_results)} relevant documents")
+
         return [{"content": r["content"], "source": r["source"]} for r in top_results]
             
     except Exception as e:
